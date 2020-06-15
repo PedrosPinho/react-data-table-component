@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import PropTypes from 'prop-types';
 import styled from 'styled-components';
+import Draggable from 'react-draggable';
 import { Cell } from './Cell';
 import { useTableContext } from './DataTableContext';
 import NativeSortIcon from '../icons/NativeSortIcon';
@@ -10,12 +11,17 @@ const TableColStyle = styled(Cell)`
 `;
 
 const ColumnSortable = styled.div`
-  display: inline-flex;
+  display: flex;
+  width: ${props => props.column.width || '50'}px;
+  justify-content: space-between;
   align-items: center;
   height: 100%;
   line-height: 1;
   user-select: none;
-  ${props => (props.sortActive ? props.theme.headCells.activeSortStyle : props.theme.headCells.inactiveSortStyle)};
+  ${props =>
+    (props.sortActive
+      ? props.theme.headCells.activeSortStyle
+      : props.theme.headCells.inactiveSortStyle)};
 
   span.__rdt_custom_sort_icon__ {
     i,
@@ -43,17 +49,23 @@ const ColumnSortable = styled.div`
 
     span,
     span.__rdt_custom_sort_icon__ * {
-      ${({ sortActive, column }) => !sortActive && column.sortable && 'opacity: 1'};
+      ${({ sortActive, column }) =>
+    !sortActive && column.sortable && 'opacity: 1'};
     }
   }
 `;
 
-
-const TableCol = memo(({
-  column,
-  sortIcon,
-}) => {
-  const { dispatch, pagination, paginationServer, sortColumn, sortDirection, sortServer, selectableRowsVisibleOnly, persistSelectedOnSort } = useTableContext();
+const TableCol = memo(({ column, sortIcon, resizeRowProps }) => {
+  const {
+    dispatch,
+    pagination,
+    paginationServer,
+    sortColumn,
+    sortDirection,
+    sortServer,
+    selectableRowsVisibleOnly,
+    persistSelectedOnSort,
+  } = useTableContext();
 
   if (column.omit) {
     return null;
@@ -90,7 +102,7 @@ const TableCol = memo(({
 
   const renderNativeSortIcon = sortActive => (
     <NativeSortIcon
-      column={column}
+      column={{ ...column }}
       sortActive={sortActive}
       sortDirection={sortDirection}
     />
@@ -107,7 +119,6 @@ const TableCol = memo(({
   const nativeSortIconRight = column.sortable && !sortIcon && column.right;
   const customSortIconLeft = column.sortable && sortIcon && !column.right;
   const customSortIconRight = column.sortable && sortIcon && column.right;
-
   return (
     <TableColStyle
       className="rdt_TableCol"
@@ -128,11 +139,43 @@ const TableCol = memo(({
         >
           {customSortIconRight && renderCustomSortIcon()}
           {nativeSortIconRight && renderNativeSortIcon(sortActive)}
-          <div>
-            {column.name}
-          </div>
+          <div>{column.name}</div>
           {customSortIconLeft && renderCustomSortIcon()}
           {nativeSortIconLeft && renderNativeSortIcon(sortActive)}
+          <div style={{ position: 'absolute', right: 0 }}>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                resizeRowProps(-50);
+              }}
+              style={{ cursor: 'pointer' }}
+              className="DragHandleIcon"
+            >
+              &lt;
+            </button>
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                resizeRowProps(50);
+              }}
+              style={{ cursor: 'pointer' }}
+              className="DragHandleIcon"
+            >
+              &gt;
+            </button>
+          </div>
+          {/* <Draggable
+            axis="x"
+            defaultClassName="DragHandle"
+            defaultClassNameDragging="DragHandleActive"
+            onDrag={(event, { deltaX }) => resizeRowProps(deltaX)}
+            position={{ x: 0 }}
+            zIndex={999}
+          >
+            <span style={{ cursor: 'col-resize' }} className="DragHandleIcon">
+              ⋮
+            </span>
+          </Draggable> */}
         </ColumnSortable>
       )}
     </TableColStyle>
@@ -141,10 +184,8 @@ const TableCol = memo(({
 
 TableCol.propTypes = {
   column: PropTypes.object.isRequired,
-  sortIcon: PropTypes.oneOfType([
-    PropTypes.bool,
-    PropTypes.object,
-  ]).isRequired,
+  sortIcon: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]).isRequired,
+  resizeRowProps: PropTypes.func.isRequired,
 };
 
 export default TableCol;
